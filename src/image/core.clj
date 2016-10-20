@@ -9,25 +9,25 @@
 
 ;TODO defn model fnctns create-user check-if-user-is-checked-in user-clock-in-time
 
-(def example-db
-  {"darwin" {:check-ins []
-             :check-outs []}
-   "turtle" {:check-ins []
-             :check-outs []}})
-
 (def user-db* (atom {}))
 
 (defn create-user
   [name]
   (swap! user-db* #(assoc % name {:check-ins []
-                                  :check-outs []})))
+                                  :check-outs []}))
+  (p/pprint @user-db*))
+
+(defn checked-in?
+  [name]
+  (if (> (count (:check-ins (get @user-db* name)))
+         (count (:check-outs (get @user-db* name))))
+    (swap! user-db* #(assoc % :checked-in? true))
+    (swap! user-db* #(assoc % :checked-in? false)))
+  (p/pprint @user-db*))
 
 (defn wrap-time-in-request [handler]
   (fn [request]
     (handler (assoc request :current-time (System/currentTimeMillis)))))
-
-(def user-time-in* (atom {:time-in []
-                          :params {}}))
 
 (defroutes image
   (GET "/" []
@@ -46,19 +46,20 @@
               [:div [:input {:type "submit"}]]]))
 
   (POST "/login" request
-        (swap! user-time-in* assoc :params (get (:params request) "user"))
-        (html [:div
-               [:span (str "welcome to clock-in-n-out " (get (:params request) "user") "!")]
-               [:form {:method "post"
-                       :action "/home"}
-                [:input {:type "submit"
-                         :value "clock in"}]]]))
+        (let [user (get (:params request) "user")]
+          (create-user user)
+          (html [:div
+                 [:span (str "welcome to clock-in-n-out " user "!")]
+                 [:form {:method "post"
+                         :action "/home"}
+                  [:input {:type "submit"
+                           :value "clock in"}]]])))
 
   (POST "/home" request
-        (swap! user-time-in* assoc :time-in (System/currentTimeMillis))
-        (html [:div
-               [:div (str (read-string (:params @user-time-in*)) "'s timesheet")]
-               [:div (str "time in: " (pr-str (:time-in @user-time-in*)))]]))
+        (let [user (get (:params request) "user")]
+          (checked-in? user)
+          (html [:div
+                 [:div (str "time in: ")]])))
 
   (compojure.route/not-found "Page not found"))
 
