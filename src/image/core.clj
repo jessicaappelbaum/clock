@@ -7,7 +7,6 @@
             [ring.middleware.params :refer [wrap-params]]
             [ring.util.time :refer [format-date]]))
 
-;TODO defn model fnctns create-user check-if-user-is-checked-in user-clock-in-time
 
 (def user-db* (atom {}))
 
@@ -34,21 +33,16 @@
 (defn clock-in
   [name]
   (swap! user-db* (fn [state] (let [new-clock-ins (conj (:clock-ins (get state name)) (System/currentTimeMillis))]
-                                (assoc-in state [name :clock-ins] new-clock-ins))))
-  (p/pprint (str "DEREF USER-DB CLOCK-IN " @user-db*)))
+                                (assoc-in state [name :clock-ins] new-clock-ins)))))
 
 (defn clock-out
   [name]
   (swap! user-db* (fn [state] (let [new-clock-outs (conj (:clock-outs (get state name)) (System/currentTimeMillis))]
-                                (assoc-in state [name :clock-outs] new-clock-outs))))
-  (p/pprint (str "DEREF USER-DB CLOCK-OUT " @user-db*)))
+                                (assoc-in state [name :clock-outs] new-clock-outs)))))
 
 (defn millis->date
   [time]
   (format-date (java.util.Date. time)))
-
-#_(assoc-in state [name :clock-ins] (conj (:clock-ins (get state name)) (System/currentTimeMillis)))
-#_(swap! user-db* #(assoc % :clocked-in? true))
 
 ;;Routes
 
@@ -92,22 +86,20 @@
               [:table
                [:thead
                 [:tr [:th "time-in"] [:th "time-out"] [:th "hours"]]]
-               [:tbody
-                [:tr
-                 [:td (millis->date (last (:clock-ins user-map)))]
-                 (when (not-empty (:clock-outs user-map))
-                   [:td (millis->date (last (:clock-outs user-map)))])]]]))))
+               (into [:tbody]
+                     (for [n (range 20)]
+                       [:tr
+                        (when (not-empty (drop-last n (:clock-ins user-map)))
+                          [:td (millis->date (last (drop-last n (:clock-ins user-map))))])
+                        (when (not-empty (drop-last n (:clock-outs user-map)))
+                          [:td (millis->date (last (drop-last n (:clock-outs user-map))))])]))]))))
 
   (compojure.route/not-found "Page not found"))
 
 (defn -main []
   (let [port 5000
         handler (-> image
-                    wrap-params
-                    wrap-time-in-request)]
+                  wrap-params
+                  wrap-time-in-request)]
     (println "starting server on port" port)
     (run-server handler {:port port})))
-
-
-#_(p/pprint (format-date (java.util.Date.)))
-#_(read-string (pr-str (format-date (java.util.Date.))))
