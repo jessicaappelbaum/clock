@@ -5,7 +5,9 @@
             [hiccup.core :refer :all]
             [org.httpkit.server :refer [run-server]]
             [ring.middleware.params :refer [wrap-params]]
-            [ring.util.time :refer [format-date]]))
+            [ring.util.time :refer [format-date]])
+  (:use ring.middleware.reload
+        ring.adapter.jetty))
 
 
 (def user-db* (atom {}))
@@ -43,6 +45,17 @@
 (defn millis->date
   [time]
   (format-date (java.util.Date. time)))
+
+(defn millis-worked
+  [clock-in-time clock-out-time]
+  (- clock-out-time clock-in-time))
+
+(defn millis->hours
+  [time]
+  (let [decimal-hours (/ time 3600000.0)]
+    (str (int decimal-hours) " hrs and "
+      (Math/round (* 60 (- decimal-hours
+                              (int decimal-hours)))) " mins")))
 
 ;;Routes
 
@@ -87,19 +100,29 @@
                [:thead
                 [:tr [:th "time-in"] [:th "time-out"] [:th "hours"]]]
                (into [:tbody]
-                     (for [n (range 20)]
+                     (for [n (range (count (into [] (:clock-ins user-map))))]
                        [:tr
-                        (when (not-empty (drop-last n (:clock-ins user-map)))
-                          [:td (millis->date (last (drop-last n (:clock-ins user-map))))])
-                        (when (not-empty (drop-last n (:clock-outs user-map)))
-                          [:td (millis->date (last (drop-last n (:clock-outs user-map))))])]))]))))
+                        (if (not-empty (drop-last n (:clock-ins user-map)))
+                          [:td (millis->date (last (drop-last n (:clock-ins user-map))))]
+                          [:td " "])
+                        (if (not-empty (drop-last n (:clock-outs user-map)))
+                          [:td (millis->date (last (drop-last n (:clock-outs user-map))))]
+                          [:td " "])
+                        (if (and (not-empty (drop-last n (:clock-ins user-map)))
+                                 (not-empty (drop-last n (:clock-outs user-map))))
+                          [:td (millis->hours (millis-worked (last (drop-last n (:clock-ins user-map)))
+                                                             (last (drop-last n (:clock-outs user-map)))))]
+                          [:td "still clocked in..."])]))]))))
 
   (compojure.route/not-found "Page not found"))
 
-(defn -main []
-  (let [port 5000
-        handler (-> image
-                  wrap-params
-                  wrap-time-in-request)]
+(def handler
+  (-> image
+    wrap-params
+    wrap-time-in-request))
+
+(defn -main
+  []
+  (let [port 3000]
     (println "starting server on port" port)
     (run-server handler {:port port})))
