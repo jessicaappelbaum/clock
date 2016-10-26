@@ -1,4 +1,4 @@
-(ns image.core
+(ns clock.core
   (:require [clojure.pprint :as p]
             [compojure.core :refer :all]
             [compojure.route :as route]

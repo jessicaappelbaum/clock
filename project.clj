@@ -1,5 +1,5 @@
-(defproject image "0.1.0-SNAPSHOT"
-  :description "a frontend for think.image"
+(defproject clock "0.1.0-SNAPSHOT"
+  :description "a simple app for clocking in and out"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -10,8 +10,8 @@
                  [ring/ring "1.5.0"]
                  [ring/ring-jetty-adapter "1.5.0"]]
   :plugins [[lein-ring "0.9.7"]]
-  :ring {:handler image.core/app}
-  :main image.core
+  :ring {:handler clock.core/app}
+  :main clock.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
   :source-paths ["src" "env"]
