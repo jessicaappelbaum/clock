@@ -55,7 +55,7 @@
 
 ;;Routes
 
-(defroutes image
+(defroutes handler
   (GET "/" []
        (html
          [:h1 "login"]
@@ -109,15 +109,15 @@
                           (if (and (not-empty all-but-n-clock-ins)
                                    (not-empty all-but-n-clock-outs))
                             [:td (millis->hours
-                                   (- (last all-but-n-clock-ins)
-                                      (last all-but-n-clock-outs)))]
+                                   (- (last all-but-n-clock-outs)
+                                      (last all-but-n-clock-ins)))]
                             [:td "still clocked in..."])])))]
               [:a {:href "/"} "back to login"]))))
 
   (compojure.route/not-found "Page not found"))
 
-(def handler
-  (-> image
+(def app
+  (-> handler
     wrap-params
     wrap-time-in-request))
 
@@ -125,4 +125,4 @@
   []
   (let [port 3000]
     (println "starting server on port" port)
-    (run-server handler {:port port})))
+    (run-server app {:port port})))

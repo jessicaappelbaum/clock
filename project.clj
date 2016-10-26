@@ -10,7 +10,9 @@
                  [ring/ring-core "1.5.0"]
                  [ring/ring-jetty-adapter "1.5.0"]]
   :plugins [[lein-ring "0.9.7"]]
-  :ring {:handler image.core/handler}
+  :ring {:handler image.core/app}
   :main image.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}}
+  :source-paths ["src" "env"]
+  :repl-options {:init-ns user})
