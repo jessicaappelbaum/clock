@@ -46,15 +46,11 @@
   [time]
   (format-date (java.util.Date. time)))
 
-(defn millis-worked
-  [clock-in-time clock-out-time]
-  (- clock-out-time clock-in-time))
-
 (defn millis->hours
   [time]
   (let [decimal-hours (/ time 3600000.0)]
     (str (int decimal-hours) " hrs and "
-      (Math/round (* 60 (- decimal-hours
+         (Math/round (* 60 (- decimal-hours
                               (int decimal-hours)))) " mins")))
 
 ;;Routes
@@ -100,19 +96,23 @@
                [:thead
                 [:tr [:th "time-in"] [:th "time-out"] [:th "hours"]]]
                (into [:tbody]
-                     (for [n (range (count (into [] (:clock-ins user-map))))]
-                       [:tr
-                        (if (not-empty (drop-last n (:clock-ins user-map)))
-                          [:td (millis->date (last (drop-last n (:clock-ins user-map))))]
-                          [:td " "])
-                        (if (not-empty (drop-last n (:clock-outs user-map)))
-                          [:td (millis->date (last (drop-last n (:clock-outs user-map))))]
-                          [:td " "])
-                        (if (and (not-empty (drop-last n (:clock-ins user-map)))
-                                 (not-empty (drop-last n (:clock-outs user-map))))
-                          [:td (millis->hours (millis-worked (last (drop-last n (:clock-ins user-map)))
-                                                             (last (drop-last n (:clock-outs user-map)))))]
-                          [:td "still clocked in..."])]))]))))
+                     (for [n (range (count (:clock-ins user-map)))]
+                       (let [all-but-n-clock-ins (drop-last n (:clock-ins user-map))
+                             all-but-n-clock-outs (drop-last n (:clock-outs user-map))]
+                         [:tr
+                          (if (not-empty all-but-n-clock-ins)
+                            [:td (millis->date (last all-but-n-clock-ins))]
+                            [:td " "])
+                          (if (not-empty all-but-n-clock-outs)
+                            [:td (millis->date (last all-but-n-clock-outs))]
+                            [:td " "])
+                          (if (and (not-empty all-but-n-clock-ins)
+                                   (not-empty all-but-n-clock-outs))
+                            [:td (millis->hours
+                                   (- (last all-but-n-clock-ins)
+                                      (last all-but-n-clock-outs)))]
+                            [:td "still clocked in..."])])))]
+              [:a {:href "/"} "back to login"]))))
 
   (compojure.route/not-found "Page not found"))
 
