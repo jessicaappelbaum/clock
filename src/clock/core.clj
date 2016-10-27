@@ -9,23 +9,34 @@
   (:use ring.middleware.reload
         ring.adapter.jetty))
 
+;; Database
 
-(def user-db* (atom {}))
+(defn get-user-data
+  []
+  (clojure.edn/read-string (slurp "resources/data/user-data.edn")))
 
-;;Middleware
+(def user-db* (atom (get-user-data)))
+
+;; Middleware
 
 (defn wrap-time-in-request [handler]
   (fn [request]
     (handler (assoc request :current-time (System/currentTimeMillis)))))
 
-;;Model Functions
+;; Moving user data from atom to edn file
+
+(defn spit-deref-into-edn
+  []
+  (spit "resources/data/user-data.edn" @user-db*))
+
+;; Model functions for atom as db
 
 (defn create-user
   [name]
-  (if (empty? (get @user-db* name))
+  (when (empty? (get @user-db* name))
     (swap! user-db* #(assoc % name {:clock-ins []
                                     :clock-outs []}))
-    user-db*))
+    (spit-deref-into-edn)))
 
 (defn clocked-in?
   [name]
@@ -35,12 +46,14 @@
 (defn clock-in
   [name]
   (swap! user-db* (fn [state] (let [new-clock-ins (conj (:clock-ins (get state name)) (System/currentTimeMillis))]
-                                (assoc-in state [name :clock-ins] new-clock-ins)))))
+                                (assoc-in state [name :clock-ins] new-clock-ins))))
+  (spit-deref-into-edn))
 
 (defn clock-out
   [name]
   (swap! user-db* (fn [state] (let [new-clock-outs (conj (:clock-outs (get state name)) (System/currentTimeMillis))]
-                                (assoc-in state [name :clock-outs] new-clock-outs)))))
+                                (assoc-in state [name :clock-outs] new-clock-outs))))
+  (spit-deref-into-edn))
 
 (defn millis->date
   [time]
@@ -53,7 +66,7 @@
          (Math/round (* 60 (- decimal-hours
                               (int decimal-hours)))) " mins")))
 
-;;Routes
+;; Routes
 
 (defroutes handler
   (GET "/" []
